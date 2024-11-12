@@ -1,3 +1,4 @@
+<script>
     const container = document.querySelector("#message-container");
     const chatInput = document.querySelector("#chattext");
     const sendButton = document.querySelector("#sendButton");
@@ -10,40 +11,32 @@
 
     let socket;
 
-    // WebSocket 초기화 함수
-    function initializeWebSocket() {
-        socket = new WebSocket(`ws://${window.location.hostname}${contextPath}/chatroom/${roomId}`);
+    // WebSocket 연결
+    socket = new WebSocket(`ws://${window.location.hostname}${contextPath}/chatroom/${roomId}`);
 
-        socket.onopen = function() {
-            console.log("WebSocket 연결 성공");
-        };
+    socket.onopen = function() {
+        console.log("WebSocket 연결 성공");
+    };
 
-        socket.onmessage = function(event) {
-            const message = JSON.parse(event.data);
-            handleIncomingMessage(message);
-        };
+    socket.onmessage = function(event) {
+        const message = JSON.parse(event.data);
+        handleIncomingMessage(message);  // 메시지 수신 처리
+    };
 
-        socket.onclose = function() {
-            console.log("WebSocket 연결이 종료되었습니다.");
-        };
+    socket.onclose = function() {
+        console.log("WebSocket 연결이 종료되었습니다.");
+    };
 
-        socket.onerror = function(error) {
-            console.error("WebSocket 오류:", error);
-        };
-    }
+    socket.onerror = function(error) {
+        console.error("WebSocket 오류:", error);
+    };
 
     // 수신된 메시지를 처리하는 함수
     function handleIncomingMessage(message) {
-        switch (message.chattingCategory) {
-            case "msg":
-            case "enter":
-                renderMessage(message);
-                break;
-            case "file":
-                renderFileMessage(message);
-                break;
-            default:
-                console.log("알 수 없는 메시지 유형:", message.chattingCategory);
+        if (message.chattingCategory === "msg") {
+            renderMessage(message);  // 일반 메시지 렌더링
+        } else if (message.chattingCategory === "file") {
+            renderFileMessage(message);  // 파일 메시지 렌더링
         }
     }
 
@@ -69,7 +62,7 @@
         }
     }
 
-    // 메시지 렌더링 함수
+    // 일반 메시지 렌더링 함수
     function renderMessage(message) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('flex', 'items-start', 'space-x-3');
@@ -93,7 +86,7 @@
         container.scrollTop = container.scrollHeight;
     }
 
-    // 파일 메시지 렌더링 함수 (선택적, 파일 처리할 경우)
+    // 파일 메시지 렌더링 함수
     function renderFileMessage(message) {
         const fileContainer = document.createElement('div');
         const fileUrl = message.chattingContent;  // 파일 URL
@@ -122,8 +115,4 @@
             sendMessage();  // 메시지 전송
         }
     });
-
-    // 페이지 로딩 후 WebSocket 초기화
-    window.onload = function() {
-        initializeWebSocket();
-    };
+</script>
