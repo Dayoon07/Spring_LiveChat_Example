@@ -1,4 +1,3 @@
-<script>
     const container = document.querySelector("#message-container");
     const chatInput = document.querySelector("#chattext");
     const sendButton = document.querySelector("#sendButton");
@@ -128,4 +127,3 @@
     window.onload = function() {
         initializeWebSocket();
     };
-</script>
