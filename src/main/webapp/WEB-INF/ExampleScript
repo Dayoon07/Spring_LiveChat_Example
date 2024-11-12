@@ -1,0 +1,131 @@
+<script>
+    const container = document.querySelector("#message-container");
+    const chatInput = document.querySelector("#chattext");
+    const sendButton = document.querySelector("#sendButton");
+
+    const roomId = "${ roomid }";  // JSP에서 전달된 채팅방 ID
+    const contextPath = "${ cl }"; // JSP에서 전달된 컨텍스트 경로
+
+    // 현재 사용자 이름
+    const sender = "${ user != null ? user.username : '' }";  // 현재 로그인한 사용자의 이름
+
+    let socket;
+
+    // WebSocket 초기화 함수
+    function initializeWebSocket() {
+        socket = new WebSocket(`ws://${window.location.hostname}${contextPath}/chatroom/${roomId}`);
+
+        socket.onopen = function() {
+            console.log("WebSocket 연결 성공");
+        };
+
+        socket.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            handleIncomingMessage(message);
+        };
+
+        socket.onclose = function() {
+            console.log("WebSocket 연결이 종료되었습니다.");
+        };
+
+        socket.onerror = function(error) {
+            console.error("WebSocket 오류:", error);
+        };
+    }
+
+    // 수신된 메시지를 처리하는 함수
+    function handleIncomingMessage(message) {
+        switch (message.chattingCategory) {
+            case "msg":
+            case "enter":
+                renderMessage(message);
+                break;
+            case "file":
+                renderFileMessage(message);
+                break;
+            default:
+                console.log("알 수 없는 메시지 유형:", message.chattingCategory);
+        }
+    }
+
+    // 메시지 전송 함수
+    function sendMessage() {
+        const messageText = chatInput.value.trim();
+        if (messageText && socket.readyState === WebSocket.OPEN) {
+            const message = new Message("msg", sender, "", messageText, new Date(), roomId);
+            socket.send(JSON.stringify(message));  // WebSocket을 통해 메시지 전송
+            chatInput.value = "";  // 입력 필드 초기화
+        }
+    }
+
+    // 메시지 객체 생성자
+    class Message {
+        constructor(chattingCategory, sender, receiver, chattingContent, chattingDate, chattingRoom) {
+            this.chattingCategory = chattingCategory;
+            this.sender = sender;
+            this.receiver = receiver;
+            this.chattingContent = chattingContent;
+            this.chattingDate = chattingDate;
+            this.chattingRoom = chattingRoom;
+        }
+    }
+
+    // 메시지 렌더링 함수
+    function renderMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('flex', 'items-start', 'space-x-3');
+
+        const messageContent = document.createElement('p');
+        messageContent.classList.add('bg-gray-200', 'p-3', 'rounded-lg', 'max-w-xs');
+        messageContent.textContent = message.chattingContent;
+
+        const senderName = document.createElement('p');
+        senderName.classList.add('text-sm', 'font-semibold');
+        senderName.textContent = message.sender;
+
+        const messageWrapper = document.createElement('div');
+        messageWrapper.appendChild(senderName);
+        messageWrapper.appendChild(messageContent);
+
+        messageElement.appendChild(messageWrapper);
+
+        // 메시지 컨테이너에 추가하고 스크롤을 맨 아래로 이동
+        container.appendChild(messageElement);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // 파일 메시지 렌더링 함수 (선택적, 파일 처리할 경우)
+    function renderFileMessage(message) {
+        const fileContainer = document.createElement('div');
+        const fileUrl = message.chattingContent;  // 파일 URL
+
+        const fileLink = document.createElement('a');
+        fileLink.href = `${contextPath}/resources/upload/chatting/${roomId}/${fileUrl}`;
+        fileLink.textContent = `파일 다운로드: ${fileUrl}`;
+        fileLink.style.display = 'block';
+
+        fileContainer.appendChild(fileLink);
+        container.appendChild(fileContainer);
+
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // 전송 버튼 클릭 시 메시지 전송
+    sendButton.addEventListener('click', function(event) {
+        event.preventDefault();  // 폼 제출을 막고
+        sendMessage();  // 메시지 전송 함수 호출
+    });
+
+    // 엔터 키로 메시지 전송 가능하게 처리
+    chatInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();  // 기본 엔터키 동작 방지
+            sendMessage();  // 메시지 전송
+        }
+    });
+
+    // 페이지 로딩 후 WebSocket 초기화
+    window.onload = function() {
+        initializeWebSocket();
+    };
+</script>
